@@ -1,0 +1,120 @@
+version: "3.9"
+
+services:
+  bot:
+    build: ./bot
+    env_file:
+      - .env
+    environment:
+      - PROCESSOR_URL=${PROCESSOR_URL}
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=${REDIS_PORT}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    depends_on:
+      - ai-processor
+      - db
+    networks:
+      - bot-network
+    volumes:
+      - ./storage:/tgbot/storage
+
+  db:
+    image: postgres:13.2
+    ports:
+      - "${POSTGRES_PORT}:${POSTGRES_PORT}"
+    command: [ "postgres", "-c", "log_statement=all", "-c", "log_destination=stderr" ]
+    healthcheck:
+      test: [ "CMD", "pg_isready", "-U", "${POSTGRES_USER}", "-d", "${POSTGRES_DB}" ]
+      interval: 1s
+      retries: 20
+    env_file:
+      - .env
+    networks:
+      - bot-network
+
+  alembic:
+    build: ./storage
+    entrypoint: [ "alembic" ]
+    command: [ "upgrade", "head" ]
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - bot-network
+    env_file:
+      - .env
+
+  ai-processor:
+    build: ./ai-processor
+    env_file:
+      - .env
+    environment:
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=${REDIS_PORT}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    ports:
+      - "8000:8000"
+    depends_on:
+      - redis
+    networks:
+      - bot-network
+    volumes:
+      - ./ai-processor/models:/app/models
+
+  redis:
+    image: redis/redis-stack:latest
+    env_file:
+      - .env
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    ports:
+      - "${REDIS_PORT}:6379"
+    # volumes:
+    #   - redis_data:/data
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD}", "--loadmodule", "/opt/redis-stack/lib/redisearch.so", "--loadmodule", "/opt/redis-stack/lib/rejson.so"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+    networks:
+      - bot-network
+
+  redis-migrate:
+    build:
+      context: ./redis
+    env_file:
+      - .env
+    depends_on:
+      - redis
+    environment:
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=${REDIS_PORT}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    networks:
+      - bot-network
+    restart: "no"
+
+  data-loader:
+    build:
+      context: ./dataloader
+    env_file:
+      - .env
+    depends_on:
+      - redis
+      - alembic
+      - ai-processor
+    networks:
+      - bot-network
+    volumes:
+     - ./storage:/app/storage
+     - ./bot/postgres.py/:/app/postgres.py
+    restart: "no"
+
+volumes:
+  storage:
+#   redis_data:
+
+networks:
+  bot-network:
+    driver: bridge

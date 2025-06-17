@@ -1,0 +1,6 @@
+fastapi==0.110.0
+uvicorn==0.22.0
+redis==4.5.1
+pydantic
+sentence-transformers
+spacy

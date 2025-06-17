@@ -1,0 +1,7 @@
+redis
+numpy
+sqlalchemy
+psycopg2-binary
+httpx
+pandas
+openpyxl
