@@ -3,9 +3,10 @@
 Поиск продуктов происходит по вектору, который строит предобученная модель RuBert
 Классификация намерения пользователя происходит за счёт линейной регрессии, обученной на векторах примеров, полученных через Rubert
 
-⚠️ НЕ РЕКОМЕНДУЮ ⚠️
-При желании сменить RuBert на ruRoBERTa (трансформерной модели от Сбера), в `./ai-processor/vectorizer.py` заменить `DeepPavlov/rubert-base-cased-sentence` на `sberbank-ai/ruRoberta-large `
-⚠️ НЕ РЕКОМЕНДУЮ ⚠️
+⚠️ НЕ РЕКОМЕНДУЮ ⚠️  
+При желании сменить RuBert на ruRoBERTa (трансформерной модели от Сбера),  
+в `./ai-processor/vectorizer.py` заменить `DeepPavlov/rubert-base-cased-sentence` на ```sberbank-ai/ruRoberta-large```  
+⚠️ НЕ РЕКОМЕНДУЮ ⚠️  
 
 # Структура
 ```
